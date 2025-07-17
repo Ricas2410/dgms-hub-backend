@@ -185,6 +185,65 @@ app.get('/api/applications', (req, res) => {
   });
 });
 
+// Mock single application endpoint
+app.get('/api/applications/:id', (req, res) => {
+  const { id } = req.params;
+
+  // Mock applications data (same as above)
+  const mockApplications = [
+    {
+      id: '1',
+      name: 'Student Portal',
+      description: 'Access your grades, schedules, and academic information',
+      category: 'Academic',
+      icon: 'https://dgms-hub-backend.onrender.com/uploads/student-portal.png',
+      url: 'https://student.dgms.edu.gh',
+      isActive: true,
+      featured: true,
+      createdAt: '2024-01-15T10:00:00Z',
+      updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+      id: '2',
+      name: 'Library System',
+      description: 'Search and reserve books, check due dates',
+      category: 'Academic',
+      icon: 'https://dgms-hub-backend.onrender.com/uploads/library.png',
+      url: 'https://library.dgms.edu.gh',
+      isActive: true,
+      featured: false,
+      createdAt: '2024-01-15T10:00:00Z',
+      updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+      id: '3',
+      name: 'School Email',
+      description: 'Access your school email account',
+      category: 'Communication',
+      icon: 'https://dgms-hub-backend.onrender.com/uploads/email.png',
+      url: 'https://mail.dgms.edu.gh',
+      isActive: true,
+      featured: true,
+      createdAt: '2024-01-15T10:00:00Z',
+      updatedAt: '2024-01-15T10:00:00Z'
+    }
+  ];
+
+  const application = mockApplications.find(app => app.id === id);
+
+  if (!application) {
+    return res.status(404).json({
+      success: false,
+      message: 'Application not found'
+    });
+  }
+
+  res.json({
+    success: true,
+    data: application
+  });
+});
+
 // Mock categories endpoint
 app.get('/api/applications/meta/categories', (req, res) => {
   res.json({
