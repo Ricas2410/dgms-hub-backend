@@ -19,7 +19,7 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// For Railway deployment - handle Railway's health checks
+// For Render deployment - handle health checks
 app.get('/', (req, res) => {
   res.json({
     message: 'DGMS Hub Backend API',
