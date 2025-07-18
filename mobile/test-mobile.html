@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DGMS Hub Mobile - Test Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .phone-container {
+            width: 375px;
+            height: 667px;
+            background: #000;
+            border-radius: 25px;
+            padding: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: #1976D2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .app-header {
+            background: #1976D2;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .app-header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .app-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            height: calc(100vh - 200px); /* Ensure scrollable area */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1976D2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .categories {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .category-btn {
+            background: #e3f2fd;
+            color: #1976D2;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .category-btn.active {
+            background: #1976D2;
+            color: white;
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .app-tile {
+            background: #1976D2;
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        .app-tile:hover {
+            transform: scale(1.05);
+        }
+
+        .app-tile .app-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .app-tile .app-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .app-tile .app-desc {
+            font-size: 11px;
+            opacity: 0.8;
+            line-height: 1.2;
+        }
+
+        .webview-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 100;
+            display: none;
+        }
+
+        .webview-header {
+            background: #1976D2;
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .webview-title {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .webview-content {
+            flex: 1;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .connection-status {
+            background: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .connection-status.offline {
+            background: #FF9800;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px;
+            text-align: center;
+        }
+
+        .refresh-btn {
+            background: #1976D2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-top: 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <div class="phone-screen">
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span>9:41</span>
+                <span>DGMS Hub</span>
+                <span>📶 🔋</span>
+            </div>
+
+            <!-- Connection Status -->
+            <div id="connectionStatus" class="connection-status">
+                ✅ Connected
+            </div>
+
+            <!-- Main App Content -->
+            <div id="mainContent">
+                <!-- App Header -->
+                <div class="app-header">
+                    <h1>🏫 DGMS Hub</h1>
+                    <p>School Web Applications</p>
+                </div>
+
+                <!-- Content Area -->
+                <div class="content">
+                    <!-- Loading State -->
+                    <div id="loadingState" class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading applications...</p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="errorState" class="error-message" style="display: none;">
+                        <p>❌ Failed to load applications</p>
+                        <button class="refresh-btn" onclick="loadApplications()">Try Again</button>
+                    </div>
+
+                    <!-- Categories -->
+                    <div id="categoriesContainer" class="categories" style="display: none;"></div>
+
+                    <!-- Applications Grid -->
+                    <div id="appsGrid" class="apps-grid" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- WebView Container -->
+            <div id="webviewContainer" class="webview-container">
+                <div class="webview-header">
+                    <button class="back-btn" onclick="closeWebView()">←</button>
+                    <div id="webviewTitle" class="webview-title">Loading...</div>
+                </div>
+                <div class="webview-content">
+                    <div>
+                        <h3>📱 WebView Simulation</h3>
+                        <p>In the real app, this would load:</p>
+                        <p id="webviewUrl" style="font-family: monospace; margin: 10px 0; word-break: break-all;"></p>
+                        <p>The mobile app uses React Native WebView to display the actual web application here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        let applications = [];
+        let categories = [];
+        let selectedCategory = 'All';
+
+        // Simulate network status
+        let isOnline = true;
+
+        async function loadApplications() {
+            showLoading();
+            
+            try {
+                // Test connection first
+                const healthResponse = await fetch(`${API_BASE}/health`);
+                if (!healthResponse.ok) throw new Error('Backend not available');
+
+                // Load applications
+                const appsResponse = await fetch(`${API_BASE}/api/applications`);
+                const appsData = await appsResponse.json();
+
+                if (appsData.success) {
+                    applications = appsData.data.applications;
+                    
+                    // Load categories
+                    const categoriesResponse = await fetch(`${API_BASE}/api/applications/meta/categories`);
+                    const categoriesData = await categoriesResponse.json();
+                    
+                    if (categoriesData.success) {
+                        categories = ['All', ...categoriesData.data.categories];
+                    }
+
+                    showApplications();
+                    updateConnectionStatus(true);
+                } else {
+                    throw new Error('Failed to load applications');
+                }
+            } catch (error) {
+                console.error('Error loading applications:', error);
+                showError();
+                updateConnectionStatus(false);
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('categoriesContainer').style.display = 'none';
+            document.getElementById('appsGrid').style.display = 'none';
+        }
+
+        function showError() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('categoriesContainer').style.display = 'none';
+            document.getElementById('appsGrid').style.display = 'none';
+        }
+
+        function showApplications() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('categoriesContainer').style.display = 'flex';
+            document.getElementById('appsGrid').style.display = 'grid';
+
+            renderCategories();
+            renderApplications();
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = categories.map(category => `
+                <button class="category-btn ${category === selectedCategory ? 'active' : ''}" 
+                        onclick="selectCategory('${category}')">
+                    ${category}
+                </button>
+            `).join('');
+        }
+
+        function renderApplications() {
+            const filteredApps = selectedCategory === 'All' 
+                ? applications 
+                : applications.filter(app => app.category === selectedCategory);
+
+            const grid = document.getElementById('appsGrid');
+            grid.innerHTML = filteredApps.map(app => `
+                <div class="app-tile" 
+                     style="background-color: ${app.backgroundColor || '#1976D2'}; color: ${app.textColor || '#FFFFFF'}"
+                     onclick="openApplication('${app.name}', '${app.url}')">
+                    <div class="app-icon">🌐</div>
+                    <div class="app-name">${app.name}</div>
+                    <div class="app-desc">${app.description || ''}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectCategory(category) {
+            selectedCategory = category;
+            renderCategories();
+            renderApplications();
+        }
+
+        function openApplication(name, url) {
+            document.getElementById('webviewTitle').textContent = name;
+            document.getElementById('webviewUrl').textContent = url;
+            document.getElementById('webviewContainer').style.display = 'flex';
+            document.getElementById('webviewContainer').style.flexDirection = 'column';
+        }
+
+        function closeWebView() {
+            document.getElementById('webviewContainer').style.display = 'none';
+        }
+
+        function updateConnectionStatus(online) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (online) {
+                statusEl.textContent = '✅ Connected';
+                statusEl.className = 'connection-status';
+            } else {
+                statusEl.textContent = '❌ Offline';
+                statusEl.className = 'connection-status offline';
+            }
+        }
+
+        // Simulate pull-to-refresh
+        let startY = 0;
+        let currentY = 0;
+        let pullDistance = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            currentY = e.touches[0].clientY;
+            pullDistance = currentY - startY;
+            
+            if (pullDistance > 100 && window.scrollY === 0) {
+                // Trigger refresh
+                loadApplications();
+            }
+        });
+
+        // Load applications on page load
+        window.addEventListener('load', () => {
+            setTimeout(loadApplications, 1000); // Simulate loading delay
+        });
+
+        // Simulate network changes
+        setInterval(() => {
+            // Randomly simulate network issues (very rarely)
+            if (Math.random() < 0.05) {
+                updateConnectionStatus(false);
+                setTimeout(() => updateConnectionStatus(true), 2000);
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
