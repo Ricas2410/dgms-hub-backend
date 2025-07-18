@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "DGMS Hub",
+    "slug": "dgms-hub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "description": "Deigratia Montessori School - Official Mobile Hub",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1e3a8a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dgms.hub"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1e3a8a"
+      },
+      "package": "com.dgms.hub",
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "static",
+      "build": {
+        "babel": {
+          "include": [
+            "@expo/vector-icons"
+          ]
+        }
+      }
+    },
+    "extra": {
+      "schoolName": "Deigratia Montessori School",
+      "apiUrl": "https://dgms-hub-backend.onrender.com",
+      "eas": {
+        "projectId": "8704dd4c-9e8c-4c9d-a00c-6332b6c6e6e1"
+      }
+    }
+  }
+}
