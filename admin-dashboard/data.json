@@ -14,9 +14,14 @@
       "name": "Zoom",
       "description": "Video conferencing for virtual classes",
       "category": "Communication",
-      "url": "https://zoom.us",
+      "url": "https://pentora.fly.dev",
       "icon": "https://zoom.us/favicon.ico",
-      "isActive": true
+      "isActive": true,
+      "iconUrl": "https://zoom.us/favicon.ico",
+      "backgroundColor": "#1976D2",
+      "textColor": "#FFFFFF",
+      "requiresAuth": false,
+      "openInNewTab": false
     },
     {
       "id": 4,
@@ -36,6 +41,6 @@
   ],
   "settings": {
     "schoolName": "Deigratia Montessori School",
-    "lastUpdated": "2025-07-18T22:53:12.870Z"
+    "lastUpdated": "2025-07-18T23:21:19.017Z"
   }
 }
