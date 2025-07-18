@@ -6,7 +6,7 @@ class DGMSAdmin {
         this.applications = [];
         this.categories = ['Education', 'Communication', 'Productivity', 'Services'];
         this.currentEditId = null;
-        this.apiUrl = 'https://dgms-hub-backend.onrender.com/api';
+        this.apiUrl = 'http://localhost:3001/api';
 
         this.init();
     }
@@ -37,8 +37,11 @@ class DGMSAdmin {
             const response = await fetch(`${this.apiUrl}/applications`);
             if (response.ok) {
                 const result = await response.json();
-                if (result.success && Array.isArray(result.data.applications)) {
-                    // Transform production API data to match admin format
+                if (Array.isArray(result)) {
+                    // Local API returns array directly
+                    this.applications = result;
+                } else if (result.success && Array.isArray(result.data.applications)) {
+                    // Production API format (fallback)
                     this.applications = result.data.applications.map(app => ({
                         id: parseInt(app.id),
                         name: app.name,
@@ -124,8 +127,12 @@ class DGMSAdmin {
             description: document.getElementById('appDescription').value,
             category: document.getElementById('appCategory').value,
             url: document.getElementById('appUrl').value,
-            icon: document.getElementById('appIcon').value,
-            isActive: true
+            iconUrl: document.getElementById('appIcon').value || null,
+            isActive: true,
+            backgroundColor: '#1976D2',
+            textColor: '#FFFFFF',
+            requiresAuth: false,
+            openInNewTab: false
         };
 
         try {
@@ -134,14 +141,20 @@ class DGMSAdmin {
                 // Edit existing application
                 response = await fetch(`${this.apiUrl}/applications/${this.currentEditId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
                     body: JSON.stringify(formData)
                 });
             } else {
                 // Add new application
                 response = await fetch(`${this.apiUrl}/applications`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
                     body: JSON.stringify(formData)
                 });
             }
@@ -153,11 +166,13 @@ class DGMSAdmin {
                 this.updateMobileApp();
                 this.showNotification(this.currentEditId ? 'Application updated successfully!' : 'Application added successfully!');
             } else {
-                this.showNotification('Failed to save application', 'error');
+                const errorData = await response.text();
+                console.error('API Error:', errorData);
+                this.showNotification(`Failed to save application: ${response.status}`, 'error');
             }
         } catch (error) {
             console.error('Error saving application:', error);
-            this.showNotification('Error connecting to server', 'error');
+            this.showNotification('Error connecting to server. Check console for details.', 'error');
         }
     }
 
@@ -165,7 +180,10 @@ class DGMSAdmin {
         if (confirm('Are you sure you want to delete this application?')) {
             try {
                 const response = await fetch(`${this.apiUrl}/applications/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
                 });
 
                 if (response.ok) {
@@ -174,11 +192,13 @@ class DGMSAdmin {
                     this.updateMobileApp();
                     this.showNotification('Application deleted successfully!');
                 } else {
-                    this.showNotification('Failed to delete application', 'error');
+                    const errorData = await response.text();
+                    console.error('Delete Error:', errorData);
+                    this.showNotification(`Failed to delete application: ${response.status}`, 'error');
                 }
             } catch (error) {
                 console.error('Error deleting application:', error);
-                this.showNotification('Error connecting to server', 'error');
+                this.showNotification('Error connecting to server. Check console for details.', 'error');
             }
         }
     }

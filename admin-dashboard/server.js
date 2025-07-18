@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const DATA_FILE = path.join(__dirname, 'data.json');
 
 // CORS headers
@@ -53,6 +53,17 @@ const server = http.createServer((req, res) => {
   if (method === 'OPTIONS') {
     res.writeHead(200);
     res.end();
+    return;
+  }
+
+  // Health check endpoint
+  if (pathname === '/health' && method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      message: 'DGMS Hub Admin API is running'
+    }));
     return;
   }
 
@@ -165,10 +176,11 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`🚀 DGMS Hub Admin API Server running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 DGMS Hub Admin API Server running on port ${PORT}`);
   console.log(`📊 Data file: ${DATA_FILE}`);
   console.log(`🔄 Endpoints:`);
+  console.log(`   GET    /health              - Health check`);
   console.log(`   GET    /api/applications     - Get all applications`);
   console.log(`   POST   /api/applications     - Add new application`);
   console.log(`   PUT    /api/applications/:id - Update application`);

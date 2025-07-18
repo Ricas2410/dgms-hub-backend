@@ -1,15 +1,6 @@
 {
   "applications": [
     {
-      "id": 1,
-      "name": "Google Classroom",
-      "description": "Online learning platform for assignments and resources",
-      "category": "Education",
-      "url": "https://classroom.google.com",
-      "icon": "https://ssl.gstatic.com/classroom/favicon.png",
-      "isActive": true
-    },
-    {
       "id": 2,
       "name": "Khan Academy",
       "description": "Free online courses and practice exercises",
@@ -37,9 +28,14 @@
       "isActive": true
     }
   ],
-  "categories": ["Education", "Communication", "Productivity", "Services"],
+  "categories": [
+    "Education",
+    "Communication",
+    "Productivity",
+    "Services"
+  ],
   "settings": {
     "schoolName": "Deigratia Montessori School",
-    "lastUpdated": "2025-07-18T19:30:00Z"
+    "lastUpdated": "2025-07-18T22:53:12.870Z"
   }
 }
