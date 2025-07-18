@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DGMS Hub - Production Admin</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #1976D2; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .btn-primary { background: #1976D2; color: white; }
+        .btn-success { background: #4CAF50; color: white; }
+        .btn-warning { background: #FF9800; color: white; }
+        .app-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .app-item { background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        .app-item h3 { color: #1976D2; margin-bottom: 10px; }
+        .app-item p { color: #666; margin-bottom: 10px; }
+        .status { padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .export-data { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px; }
+        .export-data textarea { width: 100%; height: 200px; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 DGMS Hub - Production Admin</h1>
+            <p>View and export your school applications</p>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="card">
+            <h2>📱 Applications Management</h2>
+            <p><strong>Note:</strong> This is connected to the production read-only API. You can view and export data, but editing requires the local admin system.</p>
+            <button class="btn btn-primary" onclick="loadApplications()">🔄 Refresh Data</button>
+            <button class="btn btn-success" onclick="exportData()">📥 Export Data</button>
+            <button class="btn btn-warning" onclick="showLocalInstructions()">🔧 Enable Editing</button>
+        </div>
+
+        <div id="appList" class="app-list">
+            <!-- Applications will be loaded here -->
+        </div>
+
+        <div id="exportSection" class="export-data" style="display: none;">
+            <h3>📥 Export Data</h3>
+            <p>Copy this data to backup or import into your local admin system:</p>
+            <textarea id="exportData" readonly></textarea>
+            <button class="btn btn-primary" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+        </div>
+
+        <div id="instructions" class="card" style="display: none;">
+            <h3>🔧 Enable Full Admin Features</h3>
+            <p>To add, edit, and delete applications, you need to run the local admin system:</p>
+            <ol>
+                <li><strong>Start Local API:</strong> <code>cd admin-dashboard && node server.js</code></li>
+                <li><strong>Start Admin Dashboard:</strong> <code>python -m http.server 3000</code></li>
+                <li><strong>Open:</strong> <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+            </ol>
+            <p><strong>Benefits of Local Admin:</strong></p>
+            <ul>
+                <li>✅ Add new applications</li>
+                <li>✅ Edit existing applications</li>
+                <li>✅ Delete applications</li>
+                <li>✅ Real-time sync with mobile app</li>
+                <li>✅ Data persistence</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const PRODUCTION_API = 'https://dgms-hub-backend.onrender.com/api';
+        let applications = [];
+
+        // Load applications on page load
+        document.addEventListener('DOMContentLoaded', loadApplications);
+
+        async function loadApplications() {
+            showStatus('Loading applications from production API...', 'info');
+            try {
+                const response = await fetch(`${PRODUCTION_API}/applications`);
+                const data = await response.json();
+                
+                if (data.success && data.data.applications) {
+                    applications = data.data.applications;
+                    displayApplications();
+                    showStatus(`✅ Loaded ${applications.length} applications from production`, 'success');
+                } else {
+                    showStatus('❌ Failed to load applications', 'warning');
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'warning');
+                console.error('Load error:', error);
+            }
+        }
+
+        function displayApplications() {
+            const appList = document.getElementById('appList');
+            appList.innerHTML = '';
+
+            applications.forEach(app => {
+                const appDiv = document.createElement('div');
+                appDiv.className = 'app-item';
+                appDiv.innerHTML = `
+                    <h3>${app.name}</h3>
+                    <p><strong>Category:</strong> ${app.category}</p>
+                    <p><strong>Description:</strong> ${app.description}</p>
+                    <p><strong>URL:</strong> <a href="${app.url}" target="_blank">${app.url}</a></p>
+                    <p><strong>Status:</strong> ${app.isActive ? '✅ Active' : '❌ Inactive'}</p>
+                    <p><strong>Created:</strong> ${new Date(app.createdAt).toLocaleDateString()}</p>
+                `;
+                appList.appendChild(appDiv);
+            });
+        }
+
+        function exportData() {
+            const exportSection = document.getElementById('exportSection');
+            const exportTextarea = document.getElementById('exportData');
+            
+            const exportObj = {
+                applications: applications,
+                exportDate: new Date().toISOString(),
+                totalApps: applications.length,
+                categories: [...new Set(applications.map(app => app.category))]
+            };
+            
+            exportTextarea.value = JSON.stringify(exportObj, null, 2);
+            exportSection.style.display = 'block';
+            showStatus('✅ Data exported successfully!', 'success');
+        }
+
+        function copyToClipboard() {
+            const exportTextarea = document.getElementById('exportData');
+            exportTextarea.select();
+            document.execCommand('copy');
+            showStatus('✅ Data copied to clipboard!', 'success');
+        }
+
+        function showLocalInstructions() {
+            const instructions = document.getElementById('instructions');
+            instructions.style.display = instructions.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>

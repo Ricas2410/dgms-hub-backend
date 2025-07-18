@@ -15,6 +15,7 @@ import {
   Platform,
 } from 'react-native';
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 
 // School colors - Deigratia Montessori School
 const COLORS = {
@@ -28,8 +29,20 @@ const COLORS = {
   success: '#10b981',
 };
 
-// API Configuration
-const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'https://dgms-hub-backend.onrender.com';
+// API Configuration - Production Ready
+const API_BASE_URL = 'https://dgms-hub-backend.onrender.com';
+
+// Beautiful App Colors (like in the original design)
+const APP_COLORS = [
+  '#1976D2', // Blue
+  '#388E3C', // Green
+  '#F57C00', // Orange
+  '#D32F2F', // Red
+  '#7B1FA2', // Purple
+  '#00796B', // Teal
+  '#5D4037', // Brown
+  '#455A64', // Blue Grey
+];
 
 // Mock data for fallback
 const MOCK_APPLICATIONS = [
@@ -84,22 +97,30 @@ export default function App() {
     const loadData = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/applications`);
-        const data = await response.json();
-        if (data.success && Array.isArray(data.data)) {
-          setApplications(data.data);
+        const result = await response.json();
+        if (result.success && Array.isArray(result.data.applications)) {
+          // Transform the production API data to match our app format
+          const transformedApps = result.data.applications.map(app => ({
+            id: app.id,
+            name: app.name,
+            description: app.description,
+            category: app.category,
+            url: app.url,
+            icon: app.iconUrl || `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}`,
+            isActive: app.isActive
+          }));
+          setApplications(transformedApps);
+
+          // Extract unique categories from applications
+          const uniqueCategories = [...new Set(transformedApps.map(app => app.category))];
+          setCategories(['All', ...uniqueCategories]);
+        } else {
+          setApplications(MOCK_APPLICATIONS);
         }
       } catch (error) {
         console.log('Using mock data:', error.message);
-      }
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/applications/meta/categories`);
-        const data = await response.json();
-        if (data.success && Array.isArray(data.data.categories)) {
-          setCategories(['All', ...data.data.categories]);
-        }
-      } catch (error) {
-        console.log('Using mock categories:', error.message);
+        setApplications(MOCK_APPLICATIONS);
+        setCategories(['All', 'Education', 'Communication', 'Productivity', 'Services']);
       }
 
       setLoading(false);
@@ -111,30 +132,65 @@ export default function App() {
 
 
   const openApplication = (url) => {
-    // For web platform, open in same window/tab
+    // For web platform, open in same window/tab for better user experience
     if (Platform.OS === 'web') {
       window.open(url, '_self');
     } else {
-      // For mobile, use Linking
-      Linking.openURL(url).catch(() => {
-        Alert.alert('Error', 'Cannot open this application');
-      });
+      // For mobile, show confirmation dialog then open
+      Alert.alert(
+        'Open Application',
+        'This will open the application in your browser. Continue?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Open',
+            onPress: () => {
+              Linking.openURL(url).catch(() => {
+                Alert.alert('Error', 'Cannot open this application');
+              });
+            }
+          }
+        ]
+      );
     }
   };
 
   // Check for admin dashboard updates
   useEffect(() => {
-    const checkAdminUpdates = () => {
+    const checkAdminUpdates = async () => {
       try {
-        const adminData = localStorage.getItem('dgms_applications');
-        if (adminData) {
-          const parsedData = JSON.parse(adminData);
-          if (Array.isArray(parsedData) && parsedData.length > 0) {
-            setApplications(parsedData);
+        // Try to fetch from local admin API first
+        const response = await fetch('http://localhost:3001/api/sync');
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data.applications) && data.applications.length > 0) {
+            // Transform local admin data to match mobile app format
+            const transformedApps = data.applications.map(app => ({
+              id: app.id,
+              name: app.name,
+              description: app.description,
+              category: app.category,
+              url: app.url,
+              icon: app.icon || `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}`,
+              isActive: app.isActive
+            }));
+            setApplications(transformedApps);
+            return;
           }
         }
       } catch (error) {
-        console.log('No admin updates found');
+        // Fallback to localStorage if API is not available
+        try {
+          const adminData = localStorage.getItem('dgms_applications');
+          if (adminData) {
+            const parsedData = JSON.parse(adminData);
+            if (Array.isArray(parsedData) && parsedData.length > 0) {
+              setApplications(parsedData);
+            }
+          }
+        } catch (localError) {
+          console.log('No admin updates found');
+        }
       }
     };
 
@@ -217,17 +273,23 @@ export default function App() {
       {/* Applications Grid */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.applicationsGrid}>
-          {filteredApplications.map((app) => (
+          {filteredApplications.map((app, index) => (
             <TouchableOpacity
               key={app.id}
-              style={styles.appCard}
+              style={[
+                styles.appCard,
+                { backgroundColor: APP_COLORS[index % APP_COLORS.length] }
+              ]}
               onPress={() => openApplication(app.url)}
             >
               <View style={styles.appIconContainer}>
-                <Image
-                  source={{ uri: app.icon }}
-                  style={styles.appIcon}
-                />
+                <View style={styles.appIcon}>
+                  <Ionicons
+                    name="globe-outline"
+                    size={32}
+                    color="white"
+                  />
+                </View>
               </View>
               <Text style={styles.appName} numberOfLines={2}>
                 {app.name}
@@ -235,9 +297,6 @@ export default function App() {
               <Text style={styles.appDescription} numberOfLines={3}>
                 {app.description}
               </Text>
-              <View style={styles.appCategory}>
-                <Text style={styles.appCategoryText}>{app.category}</Text>
-              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -345,58 +404,48 @@ const styles = StyleSheet.create({
   },
   appCard: {
     width: '48%',
-    backgroundColor: COLORS.white,
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 6,
+    minHeight: 140,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   appIconContainer: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   appIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   appName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.white,
     textAlign: 'center',
     marginBottom: 8,
   },
   appDescription: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: 'rgba(255,255,255,0.9)',
     textAlign: 'center',
     lineHeight: 16,
-    marginBottom: 12,
-    minHeight: 32,
+    marginBottom: 0,
   },
-  appCategory: {
-    backgroundColor: COLORS.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'center',
-  },
-  appCategoryText: {
-    fontSize: 10,
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
+
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 40,
