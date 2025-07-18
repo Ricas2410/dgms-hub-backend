@@ -1,0 +1,45 @@
+{
+  "applications": [
+    {
+      "id": 1,
+      "name": "Google Classroom",
+      "description": "Online learning platform for assignments and resources",
+      "category": "Education",
+      "url": "https://classroom.google.com",
+      "icon": "https://ssl.gstatic.com/classroom/favicon.png",
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "name": "Khan Academy",
+      "description": "Free online courses and practice exercises",
+      "category": "Education",
+      "url": "https://www.khanacademy.org",
+      "icon": "https://cdn.kastatic.org/images/favicon.ico",
+      "isActive": true
+    },
+    {
+      "id": 3,
+      "name": "Zoom",
+      "description": "Video conferencing for virtual classes",
+      "category": "Communication",
+      "url": "https://zoom.us",
+      "icon": "https://zoom.us/favicon.ico",
+      "isActive": true
+    },
+    {
+      "id": 4,
+      "name": "Microsoft Teams",
+      "description": "Collaboration platform for team communication",
+      "category": "Communication",
+      "url": "https://teams.microsoft.com",
+      "icon": "https://res.cdn.office.net/teams/favicon.ico",
+      "isActive": true
+    }
+  ],
+  "categories": ["Education", "Communication", "Productivity", "Services"],
+  "settings": {
+    "schoolName": "Deigratia Montessori School",
+    "lastUpdated": "2025-07-18T19:30:00Z"
+  }
+}

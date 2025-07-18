@@ -1,0 +1,17 @@
+{
+  "name": "dgms-hub-admin-api",
+  "version": "1.0.0",
+  "description": "DGMS Hub Admin API Server - Production Ready",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["dgms", "admin", "api", "school", "management"],
+  "author": "DGMS Hub Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {}
+}

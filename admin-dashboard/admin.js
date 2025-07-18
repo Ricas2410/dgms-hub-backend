@@ -1,55 +1,18 @@
 // DGMS Hub Admin Dashboard JavaScript
-// Professional application management system
+// Professional application management system with persistent data
 
 class DGMSAdmin {
     constructor() {
-        this.applications = [
-            {
-                id: 1,
-                name: 'Google Classroom',
-                description: 'Online learning platform for assignments and resources',
-                category: 'Education',
-                url: 'https://classroom.google.com',
-                icon: 'https://ssl.gstatic.com/classroom/favicon.png',
-                isActive: true
-            },
-            {
-                id: 2,
-                name: 'Khan Academy',
-                description: 'Free online courses and practice exercises',
-                category: 'Education',
-                url: 'https://www.khanacademy.org',
-                icon: 'https://cdn.kastatic.org/images/favicon.ico',
-                isActive: true
-            },
-            {
-                id: 3,
-                name: 'Zoom',
-                description: 'Video conferencing for virtual classes',
-                category: 'Communication',
-                url: 'https://zoom.us',
-                icon: 'https://zoom.us/favicon.ico',
-                isActive: true
-            },
-            {
-                id: 4,
-                name: 'Microsoft Teams',
-                description: 'Collaboration platform for team communication',
-                category: 'Communication',
-                url: 'https://teams.microsoft.com',
-                icon: 'https://res.cdn.office.net/teams/favicon.ico',
-                isActive: true
-            }
-        ];
-        
+        this.applications = [];
         this.categories = ['Education', 'Communication', 'Productivity', 'Services'];
         this.currentEditId = null;
-        
+        this.apiUrl = 'https://dgms-hub-backend.onrender.com/api';
+
         this.init();
     }
 
-    init() {
-        this.loadApplications();
+    async init() {
+        await this.loadApplications();
         this.updateStats();
         this.setupEventListeners();
     }
@@ -69,7 +32,35 @@ class DGMSAdmin {
         });
     }
 
-    loadApplications() {
+    async loadApplications() {
+        try {
+            const response = await fetch(`${this.apiUrl}/applications`);
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && Array.isArray(result.data.applications)) {
+                    // Transform production API data to match admin format
+                    this.applications = result.data.applications.map(app => ({
+                        id: parseInt(app.id),
+                        name: app.name,
+                        description: app.description,
+                        category: app.category,
+                        url: app.url,
+                        icon: app.iconUrl || `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}`,
+                        isActive: app.isActive
+                    }));
+                } else {
+                    console.error('Invalid API response format');
+                    this.showNotification('Invalid API response format', 'error');
+                }
+            } else {
+                console.error('Failed to load applications');
+                this.showNotification('Failed to load applications', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading applications:', error);
+            this.showNotification('Error connecting to server', 'error');
+        }
+
         const appList = document.getElementById('appList');
         appList.innerHTML = '';
 
@@ -127,7 +118,7 @@ class DGMSAdmin {
         document.getElementById('appModal').style.display = 'block';
     }
 
-    saveApplication() {
+    async saveApplication() {
         const formData = {
             name: document.getElementById('appName').value,
             description: document.getElementById('appDescription').value,
@@ -137,43 +128,83 @@ class DGMSAdmin {
             isActive: true
         };
 
-        if (this.currentEditId) {
-            // Edit existing application
-            const index = this.applications.findIndex(a => a.id === this.currentEditId);
-            if (index !== -1) {
-                this.applications[index] = { ...this.applications[index], ...formData };
+        try {
+            let response;
+            if (this.currentEditId) {
+                // Edit existing application
+                response = await fetch(`${this.apiUrl}/applications/${this.currentEditId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+            } else {
+                // Add new application
+                response = await fetch(`${this.apiUrl}/applications`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
             }
-        } else {
-            // Add new application
-            const newId = Math.max(...this.applications.map(a => a.id)) + 1;
-            this.applications.push({ id: newId, ...formData });
-        }
 
-        this.loadApplications();
-        this.updateStats();
-        this.closeModal();
-        this.updateMobileApp();
-        this.showNotification(this.currentEditId ? 'Application updated successfully!' : 'Application added successfully!');
+            if (response.ok) {
+                await this.loadApplications();
+                this.updateStats();
+                this.closeModal();
+                this.updateMobileApp();
+                this.showNotification(this.currentEditId ? 'Application updated successfully!' : 'Application added successfully!');
+            } else {
+                this.showNotification('Failed to save application', 'error');
+            }
+        } catch (error) {
+            console.error('Error saving application:', error);
+            this.showNotification('Error connecting to server', 'error');
+        }
     }
 
-    deleteApplication(id) {
+    async deleteApplication(id) {
         if (confirm('Are you sure you want to delete this application?')) {
-            this.applications = this.applications.filter(a => a.id !== id);
-            this.loadApplications();
-            this.updateStats();
-            this.updateMobileApp();
-            this.showNotification('Application deleted successfully!');
+            try {
+                const response = await fetch(`${this.apiUrl}/applications/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    await this.loadApplications();
+                    this.updateStats();
+                    this.updateMobileApp();
+                    this.showNotification('Application deleted successfully!');
+                } else {
+                    this.showNotification('Failed to delete application', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting application:', error);
+                this.showNotification('Error connecting to server', 'error');
+            }
         }
     }
 
-    toggleApplication(id) {
+    async toggleApplication(id) {
         const app = this.applications.find(a => a.id === id);
         if (app) {
-            app.isActive = !app.isActive;
-            this.loadApplications();
-            this.updateStats();
-            this.updateMobileApp();
-            this.showNotification(`Application ${app.isActive ? 'activated' : 'deactivated'} successfully!`);
+            try {
+                const response = await fetch(`${this.apiUrl}/applications/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isActive: !app.isActive })
+                });
+
+                if (response.ok) {
+                    await this.loadApplications();
+                    this.updateStats();
+                    this.updateMobileApp();
+                    this.showNotification(`Application ${!app.isActive ? 'activated' : 'deactivated'} successfully!`);
+                } else {
+                    this.showNotification('Failed to update application', 'error');
+                }
+            } catch (error) {
+                console.error('Error toggling application:', error);
+                this.showNotification('Error connecting to server', 'error');
+            }
         }
     }
 
@@ -219,14 +250,18 @@ class DGMSAdmin {
         window.open('http://localhost:8081', '_blank');
     }
 
-    showNotification(message) {
+    showNotification(message, type = 'success') {
         // Create a simple notification
         const notification = document.createElement('div');
+        const bgColor = type === 'error'
+            ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+            : 'linear-gradient(135deg, #10b981, #059669)';
+
         notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: ${bgColor};
             color: white;
             padding: 15px 25px;
             border-radius: 10px;
@@ -239,7 +274,7 @@ class DGMSAdmin {
 
         setTimeout(() => {
             notification.remove();
-        }, 3000);
+        }, type === 'error' ? 5000 : 3000);
     }
 }
 
