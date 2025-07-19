@@ -5,9 +5,14 @@
       "name": "Khan Academy",
       "description": "Free online courses and practice exercises",
       "category": "Education",
-      "url": "https://www.khanacademy.org",
+      "url": "https://deigratiams.edu.gh/users/student-login/",
       "icon": "https://cdn.kastatic.org/images/favicon.ico",
-      "isActive": true
+      "isActive": true,
+      "iconUrl": "https://cdn.kastatic.org/images/favicon.ico",
+      "backgroundColor": "#1976D2",
+      "textColor": "#FFFFFF",
+      "requiresAuth": false,
+      "openInNewTab": false
     },
     {
       "id": 3,
@@ -41,6 +46,6 @@
   ],
   "settings": {
     "schoolName": "Deigratia Montessori School",
-    "lastUpdated": "2025-07-18T23:21:19.017Z"
+    "lastUpdated": "2025-07-18T23:47:58.065Z"
   }
 }
