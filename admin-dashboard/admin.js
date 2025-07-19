@@ -6,7 +6,7 @@ class DGMSAdmin {
         this.applications = [];
         this.categories = ['Education', 'Communication', 'Productivity', 'Services'];
         this.currentEditId = null;
-        this.apiUrl = 'http://localhost:3001/api';
+        this.apiUrl = 'https://dgms-hub-backend.onrender.com/api';
 
         this.init();
     }
@@ -37,11 +37,8 @@ class DGMSAdmin {
             const response = await fetch(`${this.apiUrl}/applications`);
             if (response.ok) {
                 const result = await response.json();
-                if (Array.isArray(result)) {
-                    // Local API returns array directly
-                    this.applications = result;
-                } else if (result.success && Array.isArray(result.data.applications)) {
-                    // Production API format (fallback)
+                if (result.success && Array.isArray(result.data.applications)) {
+                    // Production API format
                     this.applications = result.data.applications.map(app => ({
                         id: parseInt(app.id),
                         name: app.name,
@@ -51,12 +48,15 @@ class DGMSAdmin {
                         icon: app.iconUrl || `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}`,
                         isActive: app.isActive
                     }));
+                } else if (Array.isArray(result)) {
+                    // Local API returns array directly (fallback)
+                    this.applications = result;
                 } else {
-                    console.error('Invalid API response format');
+                    console.error('Invalid API response format:', result);
                     this.showNotification('Invalid API response format', 'error');
                 }
             } else {
-                console.error('Failed to load applications');
+                console.error('Failed to load applications, status:', response.status);
                 this.showNotification('Failed to load applications', 'error');
             }
         } catch (error) {
