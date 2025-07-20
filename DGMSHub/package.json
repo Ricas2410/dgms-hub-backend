@@ -6,16 +6,26 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:android": "eas build --platform android --profile optimized",
+    "build:ios": "eas build --platform ios --profile optimized",
+    "build:all": "eas build --platform all --profile optimized",
+    "submit:android": "eas submit --platform android",
+    "submit:ios": "eas submit --platform ios",
+    "update": "eas update",
+    "deploy": "npm run build:all && npm run update"
   },
   "dependencies": {
     "expo": "~53.0.17",
     "expo-status-bar": "~2.2.3",
+    "expo-constants": "~17.0.3",
+    "expo-file-system": "~18.0.4",
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-native-community/netinfo": "11.4.1",
     "react": "19.0.0",
     "react-native": "0.79.5",
-    "react-dom": "19.0.0",
-    "react-native-web": "^0.20.0",
-    "@expo/metro-runtime": "~5.0.4"
+    "react-native-webview": "13.13.5",
+    "expo-updates": "~0.28.17"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

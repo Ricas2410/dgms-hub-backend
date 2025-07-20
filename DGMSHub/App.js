@@ -5,219 +5,185 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  TextInput,
-  Image,
   StatusBar,
   SafeAreaView,
-  Alert,
-  Linking,
   ActivityIndicator,
-  Platform,
+  Modal,
+  RefreshControl,
+  Image,
 } from 'react-native';
-import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
+import { WebView } from 'react-native-webview';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import apiService from './src/services/apiService';
+import backgroundSync from './src/services/backgroundSync';
+import offlineService from './src/services/offlineService';
 
 // School colors - Deigratia Montessori School
 const COLORS = {
-  primary: '#1e3a8a',      // Dark Blue
-  secondary: '#ec4899',     // Pink
-  accent: '#fbbf24',        // Yellow
-  danger: '#ef4444',        // Red
+  primary: '#1e3a8a',
+  secondary: '#ec4899',
+  accent: '#fbbf24',
+  danger: '#ef4444',
   white: '#ffffff',
   gray: '#6b7280',
   lightGray: '#f3f4f6',
   success: '#10b981',
+  warning: '#f59e0b',
 };
 
-// API Configuration - Production Ready
-const API_BASE_URL = 'https://dgms-hub-backend.onrender.com';
-
-// Beautiful App Colors (like in the original design)
-const APP_COLORS = [
-  '#1976D2', // Blue
-  '#388E3C', // Green
-  '#F57C00', // Orange
-  '#D32F2F', // Red
-  '#7B1FA2', // Purple
-  '#00796B', // Teal
-  '#5D4037', // Brown
-  '#455A64', // Blue Grey
-];
-
-// Mock data for fallback
-const MOCK_APPLICATIONS = [
-  {
-    id: 1,
-    name: 'Google Classroom',
-    description: 'Online learning platform for assignments and resources',
-    category: 'Education',
-    url: 'https://classroom.google.com',
-    icon: 'https://ssl.gstatic.com/classroom/favicon.png',
-    isActive: true
-  },
-  {
-    id: 2,
-    name: 'Khan Academy',
-    description: 'Free online courses and practice exercises',
-    category: 'Education',
-    url: 'https://www.khanacademy.org',
-    icon: 'https://cdn.kastatic.org/images/favicon.ico',
-    isActive: true
-  },
-  {
-    id: 3,
-    name: 'Zoom',
-    description: 'Video conferencing for virtual classes',
-    category: 'Communication',
-    url: 'https://zoom.us',
-    icon: 'https://zoom.us/favicon.ico',
-    isActive: true
-  },
-  {
-    id: 4,
-    name: 'Microsoft Teams',
-    description: 'Collaboration platform for team communication',
-    category: 'Communication',
-    url: 'https://teams.microsoft.com',
-    icon: 'https://res.cdn.office.net/teams/favicon.ico',
-    isActive: true
-  }
-];
-
 export default function App() {
-  const [applications, setApplications] = useState(MOCK_APPLICATIONS);
-  const [categories, setCategories] = useState(['All', 'Education', 'Communication', 'Productivity']);
-  const [loading, setLoading] = useState(false);
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [webViewVisible, setWebViewVisible] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState('');
+  const [currentAppName, setCurrentAppName] = useState('');
+  const [isOffline, setIsOffline] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch data from backend
-  useEffect(() => {
-    // Try to fetch from API, but keep mock data if it fails
-    const loadData = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/applications`);
-        const result = await response.json();
-        if (result.success && Array.isArray(result.data.applications)) {
-          // Transform the production API data to match our app format
-          const transformedApps = result.data.applications.map(app => ({
-            id: app.id,
-            name: app.name,
-            description: app.description,
-            category: app.category,
-            url: app.url,
-            icon: app.iconUrl || `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}`,
-            isActive: app.isActive
-          }));
-          setApplications(transformedApps);
+  // Load applications with better error handling
+  const loadApplications = async (forceOnline = false) => {
+    try {
+      if (!forceOnline) setLoading(true);
 
-          // Extract unique categories from applications
-          const uniqueCategories = [...new Set(transformedApps.map(app => app.category))];
-          setCategories(['All', ...uniqueCategories]);
-        } else {
-          setApplications(MOCK_APPLICATIONS);
-        }
-      } catch (error) {
-        console.log('Using mock data:', error.message);
-        setApplications(MOCK_APPLICATIONS);
-        setCategories(['All', 'Education', 'Communication', 'Productivity', 'Services']);
+      const response = await apiService.getApplications(forceOnline);
+
+      // Always set applications, even if empty
+      const apps = response.data.applications || [];
+      setApplications(apps);
+
+      // Update offline status
+      setIsOffline(response.fromCache || false);
+
+      // Log status for debugging
+      if (response.fromCache) {
+        console.log(`📱 Offline mode: ${apps.length} apps loaded from cache`);
+      } else {
+        console.log(`🌐 Online mode: ${apps.length} apps loaded from server`);
       }
 
+    } catch (error) {
+      console.error('❌ Error loading applications:', error);
+      setIsOffline(true);
+
+      // Try to load from cache as last resort
+      try {
+        const cachedApps = await offlineService.getApplications();
+        setApplications(cachedApps);
+        console.log(`📱 Fallback: ${cachedApps.length} apps from emergency cache`);
+      } catch (cacheError) {
+        console.error('❌ Emergency cache also failed:', cacheError);
+        setApplications([]);
+      }
+    } finally {
       setLoading(false);
-    };
-
-    loadData();
-  }, []);
-
-
-
-  const openApplication = (url) => {
-    // For web platform, open in same window/tab for better user experience
-    if (Platform.OS === 'web') {
-      window.open(url, '_self');
-    } else {
-      // For mobile, show confirmation dialog then open
-      Alert.alert(
-        'Open Application',
-        'This will open the application in your browser. Continue?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Open',
-            onPress: () => {
-              Linking.openURL(url).catch(() => {
-                Alert.alert('Error', 'Cannot open this application');
-              });
-            }
-          }
-        ]
-      );
+      setRefreshing(false);
     }
   };
 
-  // Check for admin dashboard updates
+  // Refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadApplications(true);
+  };
+
+  // Setup background sync listener
   useEffect(() => {
-    const checkAdminUpdates = async () => {
-      try {
-        // Try to fetch from local admin API first
-        const response = await fetch('http://localhost:3001/api/sync');
-        if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data.applications) && data.applications.length > 0) {
-            // Transform local admin data to match mobile app format
-            const transformedApps = data.applications.map(app => ({
-              id: app.id,
-              name: app.name,
-              description: app.description,
-              category: app.category,
-              url: app.url,
-              icon: app.icon || `https://www.google.com/s2/favicons?domain=${new URL(app.url).hostname}`,
-              isActive: app.isActive
-            }));
-            setApplications(transformedApps);
-            return;
-          }
-        }
-      } catch (error) {
-        // Fallback to localStorage if API is not available
-        try {
-          const adminData = localStorage.getItem('dgms_applications');
-          if (adminData) {
-            const parsedData = JSON.parse(adminData);
-            if (Array.isArray(parsedData) && parsedData.length > 0) {
-              setApplications(parsedData);
-            }
-          }
-        } catch (localError) {
-          console.log('No admin updates found');
-        }
+    const unsubscribe = backgroundSync.addSyncListener((event, data) => {
+      switch (event) {
+        case 'syncSuccess':
+          console.log('Background sync completed:', data);
+          // Reload applications after successful sync
+          loadApplications(false);
+          break;
+        case 'syncError':
+          console.error('Background sync failed:', data);
+          break;
+        case 'networkChange':
+          setIsOffline(!data.isOnline);
+          break;
       }
-    };
+    });
 
-    // Check for updates every 5 seconds
-    const interval = setInterval(checkAdminUpdates, 5000);
-    checkAdminUpdates(); // Check immediately
-
-    return () => clearInterval(interval);
+    return unsubscribe;
   }, []);
 
-  // Ensure applications is always an array
-  const safeApplications = Array.isArray(applications) ? applications : MOCK_APPLICATIONS;
+  // Initial load and preload content
+  useEffect(() => {
+    loadApplications();
 
-  const filteredApplications = safeApplications.filter(app => {
-    const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         app.description.toLowerCase().includes(searchQuery.toLowerCase());
+    // Preload content for offline use
+    setTimeout(() => {
+      backgroundSync.preloadContent();
+    }, 2000); // Wait 2 seconds after initial load
+  }, []);
+
+  // Filter applications
+  const filteredApplications = applications.filter(app => {
+    const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || app.category === selectedCategory;
     return matchesSearch && matchesCategory && app.isActive;
   });
 
+  // Get unique categories
+  const categories = ['All', ...new Set(applications.map(app => app.category))];
+
+  // Open application
+  const openApplication = (url, appName) => {
+    setCurrentUrl(url);
+    setCurrentAppName(appName);
+    setWebViewVisible(true);
+  };
+
+  // Render offline indicator (compact version)
+  const renderOfflineIndicator = () => {
+    if (!isOffline) return null;
+
+    return (
+      <View style={styles.offlineIndicator}>
+        <Ionicons name="wifi-off" size={12} color={COLORS.warning} />
+        <Text style={styles.offlineText}>Offline</Text>
+        <TouchableOpacity
+          onPress={() => loadApplications(true)}
+          style={styles.retryButton}
+        >
+          <Ionicons name="refresh" size={12} color={COLORS.warning} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Render application item
+  const renderApplicationItem = (app) => (
+    <TouchableOpacity
+      key={app.id}
+      style={[styles.appItem, { backgroundColor: app.backgroundColor || COLORS.primary }]}
+      onPress={() => openApplication(app.url, app.name)}
+    >
+      {app.iconUrl ? (
+        <Image
+          source={{ uri: app.iconUrl }}
+          style={styles.appIcon}
+          onError={() => console.log(`Failed to load icon for ${app.name}`)}
+        />
+      ) : (
+        <Ionicons name="globe-outline" size={32} color={app.textColor || COLORS.white} />
+      )}
+      <Text style={[styles.appName, { color: app.textColor || COLORS.white }]} numberOfLines={2}>
+        {app.name}
+      </Text>
+    </TouchableOpacity>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+        <ExpoStatusBar style="light" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading DGMS Hub...</Text>
+          <Text style={styles.loadingText}>Loading applications...</Text>
         </View>
       </SafeAreaView>
     );
@@ -225,91 +191,92 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <ExpoStatusBar style="light" />
+      <StatusBar backgroundColor={COLORS.primary} barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>DGMS Hub</Text>
-        <Text style={styles.headerSubtitle}>Deigratia Montessori School</Text>
+        <Text style={styles.headerSubtitle}>School Applications</Text>
+        {renderOfflineIndicator()}
       </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search applications..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor={COLORS.gray}
-        />
-      </View>
-
-      {/* Category Filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoryContainer}
-        contentContainerStyle={styles.categoryContent}
-      >
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category}
-            style={[
-              styles.categoryButton,
-              selectedCategory === category && styles.categoryButtonActive
-            ]}
-            onPress={() => setSelectedCategory(category)}
-          >
-            <Text style={[
-              styles.categoryText,
-              selectedCategory === category && styles.categoryTextActive
-            ]}>
-              {category}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
 
       {/* Applications Grid */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.applicationsGrid}>
-          {filteredApplications.map((app, index) => (
-            <TouchableOpacity
-              key={app.id}
-              style={[
-                styles.appCard,
-                { backgroundColor: APP_COLORS[index % APP_COLORS.length] }
-              ]}
-              onPress={() => openApplication(app.url)}
-            >
-              <View style={styles.appIconContainer}>
-                <View style={styles.appIcon}>
-                  <Ionicons
-                    name="globe-outline"
-                    size={32}
-                    color="white"
-                  />
-                </View>
-              </View>
-              <Text style={styles.appName} numberOfLines={2}>
-                {app.name}
-              </Text>
-              <Text style={styles.appDescription} numberOfLines={3}>
-                {app.description}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
+      >
+        <View style={styles.appsGrid}>
+          {filteredApplications.map(renderApplicationItem)}
         </View>
-
-        {filteredApplications.length === 0 && (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No applications found</Text>
-            <Text style={styles.emptySubtext}>
-              Try adjusting your search or category filter
+        
+        {applications.length === 0 && !loading && (
+          <View style={styles.emptyState}>
+            <Ionicons
+              name={isOffline ? "wifi-off" : "apps-outline"}
+              size={64}
+              color={COLORS.gray}
+            />
+            <Text style={styles.emptyText}>
+              {isOffline ? 'No Offline Data Available' : 'No Applications Found'}
             </Text>
+            <Text style={styles.emptySubtext}>
+              {isOffline
+                ? 'Connect to internet to download applications for offline use'
+                : 'Applications will appear here when added by admin'
+              }
+            </Text>
+            {isOffline && (
+              <TouchableOpacity
+                style={styles.retryButtonLarge}
+                onPress={() => loadApplications(true)}
+              >
+                <Ionicons name="refresh" size={20} color={COLORS.white} />
+                <Text style={styles.retryButtonText}>Try Again</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </ScrollView>
+
+      {/* WebView Modal */}
+      <Modal
+        visible={webViewVisible}
+        animationType="slide"
+        onRequestClose={() => setWebViewVisible(false)}
+      >
+        <SafeAreaView style={styles.webViewContainer}>
+          <View style={styles.webViewHeader}>
+            <TouchableOpacity
+              onPress={() => setWebViewVisible(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={24} color={COLORS.white} />
+            </TouchableOpacity>
+            <Text style={styles.webViewTitle} numberOfLines={1}>
+              {currentAppName}
+            </Text>
+          </View>
+          
+          <WebView
+            source={{ uri: currentUrl }}
+            style={styles.webView}
+            startInLoadingState={true}
+            renderLoading={() => (
+              <View style={styles.webViewLoading}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+              </View>
+            )}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -329,9 +296,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.gray,
   },
+  offlineIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  offlineText: {
+    color: COLORS.warning,
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  retryButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
   header: {
     backgroundColor: COLORS.primary,
-    paddingVertical: 20,
+    paddingVertical: 24,
     paddingHorizontal: 20,
     alignItems: 'center',
   },
@@ -346,119 +333,105 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     opacity: 0.9,
   },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.white,
-  },
-  searchInput: {
-    backgroundColor: COLORS.lightGray,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    fontSize: 16,
-  },
-  categoryContainer: {
-    backgroundColor: COLORS.white,
-    paddingBottom: 12,
-    maxHeight: 60,
-  },
-  categoryContent: {
-    paddingHorizontal: 20,
-  },
-  categoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 12,
-    borderRadius: 20,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  categoryButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  categoryText: {
-    fontSize: 14,
-    color: COLORS.gray,
-    fontWeight: '600',
-  },
-  categoryTextActive: {
-    color: COLORS.white,
-  },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
   },
-  applicationsGrid: {
+  appsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    padding: 16,
     justifyContent: 'space-between',
-    paddingTop: 16,
   },
-  appCard: {
-    width: '48%',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 6,
-    minHeight: 140,
+  appItem: {
+    width: '47%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  appIconContainer: {
-    alignItems: 'center',
     marginBottom: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   appIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  appName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    textAlign: 'center',
+    width: 32,
+    height: 32,
     marginBottom: 8,
   },
-  appDescription: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.9)',
+  appName: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '600',
     textAlign: 'center',
-    lineHeight: 16,
-    marginBottom: 0,
   },
-
-  emptyContainer: {
+  emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    justifyContent: 'center',
+    paddingVertical: 64,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: COLORS.gray,
-    marginBottom: 8,
+    marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
     color: COLORS.gray,
+    marginTop: 8,
     textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  retryButtonLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  webViewContainer: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+  },
+  webViewHeader: {
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  closeButton: {
+    padding: 8,
+    marginRight: 12,
+  },
+  webViewTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
+  webView: {
+    flex: 1,
+  },
+  webViewLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
   },
 });

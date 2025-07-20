@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dgms.hub"
+      "bundleIdentifier": "com.dgms.hub",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +26,11 @@
         "backgroundColor": "#1e3a8a"
       },
       "package": "com.dgms.hub",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "buildType": "apk",
+      "enableProguardInReleaseBuilds": true,
+      "enableHermes": true,
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -43,6 +50,9 @@
       "eas": {
         "projectId": "8704dd4c-9e8c-4c9d-a00c-6332b6c6e6e1"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8704dd4c-9e8c-4c9d-a00c-6332b6c6e6e1"
     }
   }
 }
