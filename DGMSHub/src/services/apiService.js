@@ -60,6 +60,23 @@ class ApiService {
             message: `Loaded ${cachedApps.length} apps from offline cache`
           };
         } else {
+          // Check if there's any data in the original storage location
+          try {
+            const legacyData = await AsyncStorage.getItem('applications');
+            if (legacyData) {
+              const legacyApps = JSON.parse(legacyData);
+              console.log(`📱 Found ${legacyApps.length} apps in legacy storage`);
+              return {
+                success: true,
+                data: { applications: legacyApps },
+                fromCache: true,
+                message: `Loaded ${legacyApps.length} apps from local storage`
+              };
+            }
+          } catch (legacyError) {
+            console.log('No legacy data found');
+          }
+
           return {
             success: false,
             data: { applications: [] },

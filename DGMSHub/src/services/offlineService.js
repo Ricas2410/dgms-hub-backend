@@ -2,11 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import NetInfo from '@react-native-community/netinfo';
 
-// Storage keys
+// Storage keys - Use original keys to preserve existing data
 const STORAGE_KEYS = {
-  APPLICATIONS: 'dgms_applications',
-  CATEGORIES: 'dgms_categories',
-  LAST_SYNC: 'dgms_last_sync',
+  APPLICATIONS: 'applications', // Original key
+  CATEGORIES: 'categories', // Original key
+  LAST_SYNC: 'last_sync', // Original key
   OFFLINE_MODE: 'offline_mode_enabled',
 };
 
@@ -44,6 +44,12 @@ class OfflineService {
 
   async storeApplications(applications) {
     try {
+      // Only store if we have valid applications data from server
+      if (!applications || applications.length === 0) {
+        console.log('⚠️ No applications to store - skipping cache update');
+        return false;
+      }
+
       console.log(`📱 Storing ${applications.length} applications offline...`);
 
       // Store applications data

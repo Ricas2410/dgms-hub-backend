@@ -18,6 +18,7 @@ import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import apiService from './src/services/apiService';
 import backgroundSync from './src/services/backgroundSync';
 import offlineService from './src/services/offlineService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // School colors - Deigratia Montessori School
 const COLORS = {
@@ -110,14 +111,36 @@ export default function App() {
     return unsubscribe;
   }, []);
 
+  // Clear cache and force reload from server
+  const clearCacheAndReload = async () => {
+    try {
+      console.log('🧹 Clearing all cache...');
+
+      // Clear all possible cache keys
+      await AsyncStorage.multiRemove([
+        'applications',
+        'dgms_applications',
+        'offline_applications',
+        'categories',
+        'dgms_categories',
+        'last_sync',
+        'dgms_last_sync'
+      ]);
+
+      console.log('✅ Cache cleared, reloading from server...');
+
+      // Force reload from server
+      await loadApplications(true);
+
+    } catch (error) {
+      console.error('❌ Error clearing cache:', error);
+    }
+  };
+
   // Initial load and preload content
   useEffect(() => {
-    loadApplications();
-
-    // Preload content for offline use
-    setTimeout(() => {
-      backgroundSync.preloadContent();
-    }, 2000); // Wait 2 seconds after initial load
+    // Clear cache on first load to ensure fresh data
+    clearCacheAndReload();
   }, []);
 
   // Filter applications
