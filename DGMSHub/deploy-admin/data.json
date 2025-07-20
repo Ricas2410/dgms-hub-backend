@@ -1,27 +1,8 @@
 {
-  "applications": [
-    {
-      "id": 1,
-      "name": "Library System",
-      "description": "Access the school library catalog and resources",
-      "category": "Academic",
-      "url": "https://library.deigratiams.edu.gh",
-      "icon": "https://www.google.com/s2/favicons?domain=library.deigratiams.edu.gh",
-      "isActive": true
-    },
-    {
-      "id": 2,
-      "name": "Main Website",
-      "description": "Deigratia Montessori School official website",
-      "category": "Information",
-      "url": "https://deigratiams.edu.gh",
-      "icon": "https://www.google.com/s2/favicons?domain=deigratiams.edu.gh",
-      "isActive": true
-    }
-  ],
+  "applications": [],
   "categories": ["Academic", "Information", "Communication", "Services"],
   "settings": {
     "schoolName": "Deigratia Montessori School",
-    "lastUpdated": "2025-07-20T19:30:00Z"
+    "lastUpdated": "2025-07-20T19:45:00Z"
   }
 }
