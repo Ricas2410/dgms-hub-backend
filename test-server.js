@@ -24,6 +24,9 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       applications: '/api/applications',
+      createApp: 'POST /api/applications',
+      updateApp: 'PUT /api/applications/:id',
+      deleteApp: 'DELETE /api/applications/:id',
       categories: '/api/applications/meta/categories',
       auth: '/api/auth/login'
     }
@@ -73,7 +76,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV,
-    message: 'DGMS Hub Backend Server is running (Test Mode - No Database)'
+    message: 'DGMS Hub Backend Server is running (Production Mode - Full CRUD Support)'
   });
 });
 
@@ -86,150 +89,27 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// Mock applications endpoint
+// Applications endpoint - now uses dynamic data
 app.get('/api/applications', (req, res) => {
-  const mockApplications = [
-    {
-      id: '1',
-      name: 'Student Portal',
-      description: 'Access your grades, schedules, and academic information',
-      url: 'https://portal.dgms.edu',
-      category: 'Academic',
-      displayOrder: 1,
-      isActive: true,
-      backgroundColor: '#1976D2',
-      textColor: '#FFFFFF',
-      requiresAuth: false,
-      openInNewTab: false,
-      iconUrl: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: '2',
-      name: 'Library Catalog',
-      description: 'Search and reserve books from the school library',
-      url: 'https://library.dgms.edu',
-      category: 'Academic',
-      displayOrder: 2,
-      isActive: true,
-      backgroundColor: '#388E3C',
-      textColor: '#FFFFFF',
-      requiresAuth: false,
-      openInNewTab: false,
-      iconUrl: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: '3',
-      name: 'Learning Management System',
-      description: 'Access course materials, assignments, and online classes',
-      url: 'https://lms.dgms.edu',
-      category: 'Academic',
-      displayOrder: 3,
-      isActive: true,
-      backgroundColor: '#F57C00',
-      textColor: '#FFFFFF',
-      requiresAuth: false,
-      openInNewTab: false,
-      iconUrl: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: '4',
-      name: 'School Email',
-      description: 'Access your school email account',
-      url: 'https://mail.dgms.edu',
-      category: 'Communication',
-      displayOrder: 4,
-      isActive: true,
-      backgroundColor: '#D32F2F',
-      textColor: '#FFFFFF',
-      requiresAuth: false,
-      openInNewTab: false,
-      iconUrl: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: '5',
-      name: 'Cafeteria Menu',
-      description: 'View daily menu and nutritional information',
-      url: 'https://cafeteria.dgms.edu',
-      category: 'Services',
-      displayOrder: 5,
-      isActive: true,
-      backgroundColor: '#7B1FA2',
-      textColor: '#FFFFFF',
-      requiresAuth: false,
-      openInNewTab: false,
-      iconUrl: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ];
-
   res.json({
     success: true,
     data: {
-      applications: mockApplications,
+      applications: applications,
       pagination: {
         currentPage: 1,
         totalPages: 1,
-        totalItems: mockApplications.length,
+        totalItems: applications.length,
         itemsPerPage: 50
       }
     }
   });
 });
 
-// Mock single application endpoint
+// Single application endpoint - now uses dynamic data
 app.get('/api/applications/:id', (req, res) => {
   const { id } = req.params;
 
-  // Mock applications data (same as above)
-  const mockApplications = [
-    {
-      id: '1',
-      name: 'Student Portal',
-      description: 'Access your grades, schedules, and academic information',
-      category: 'Academic',
-      icon: 'https://dgms-hub-backend.onrender.com/uploads/student-portal.png',
-      url: 'https://student.dgms.edu.gh',
-      isActive: true,
-      featured: true,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: '2',
-      name: 'Library System',
-      description: 'Search and reserve books, check due dates',
-      category: 'Academic',
-      icon: 'https://dgms-hub-backend.onrender.com/uploads/library.png',
-      url: 'https://library.dgms.edu.gh',
-      isActive: true,
-      featured: false,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: '3',
-      name: 'School Email',
-      description: 'Access your school email account',
-      category: 'Communication',
-      icon: 'https://dgms-hub-backend.onrender.com/uploads/email.png',
-      url: 'https://mail.dgms.edu.gh',
-      isActive: true,
-      featured: true,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    }
-  ];
-
-  const application = mockApplications.find(app => app.id === id);
+  const application = applications.find(app => app.id === id);
 
   if (!application) {
     return res.status(404).json({
@@ -254,10 +134,123 @@ app.get('/api/applications/meta/categories', (req, res) => {
   });
 });
 
+// Clean applications storage - NO HARDCODED DATA
+// This will be populated only through your admin dashboard
+let applications = [];
+
+// POST - Create new application
+app.post('/api/applications', (req, res) => {
+  try {
+    const { name, description, category, url, iconUrl, backgroundColor, textColor } = req.body;
+
+    // Validation
+    if (!name || !description || !category || !url) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: name, description, category, url'
+      });
+    }
+
+    const newApplication = {
+      id: String(Date.now()), // Simple ID generation
+      name,
+      description,
+      category,
+      url,
+      iconUrl: iconUrl || null,
+      backgroundColor: backgroundColor || '#1976D2',
+      textColor: textColor || '#FFFFFF',
+      displayOrder: applications.length + 1,
+      isActive: true,
+      requiresAuth: false,
+      openInNewTab: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    applications.push(newApplication);
+
+    res.status(201).json({
+      success: true,
+      message: 'Application created successfully',
+      data: newApplication
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error creating application: ' + error.message
+    });
+  }
+});
+
+// PUT - Update application
+app.put('/api/applications/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const applicationIndex = applications.findIndex(app => app.id === id);
+
+    if (applicationIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found'
+      });
+    }
+
+    // Update the application
+    applications[applicationIndex] = {
+      ...applications[applicationIndex],
+      ...updateData,
+      updatedAt: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      message: 'Application updated successfully',
+      data: applications[applicationIndex]
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error updating application: ' + error.message
+    });
+  }
+});
+
+// DELETE - Delete application
+app.delete('/api/applications/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const applicationIndex = applications.findIndex(app => app.id === id);
+
+    if (applicationIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found'
+      });
+    }
+
+    const deletedApplication = applications.splice(applicationIndex, 1)[0];
+
+    res.json({
+      success: true,
+      message: 'Application deleted successfully',
+      data: deletedApplication
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting application: ' + error.message
+    });
+  }
+});
+
 // Mock auth login endpoint
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
-  
+
   if (email === 'admin@dgms.edu' && password === 'admin123') {
     res.json({
       success: true,
