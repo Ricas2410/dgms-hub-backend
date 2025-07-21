@@ -134,9 +134,121 @@ app.get('/api/applications/meta/categories', (req, res) => {
   });
 });
 
-// Clean applications storage - NO HARDCODED DATA
-// This will be populated only through your admin dashboard
-let applications = [];
+// DGMS Hardcoded Applications - Always Available!
+let applications = [
+  {
+    id: 'dgms-main-website',
+    name: 'DGMS Main Website',
+    description: 'Official Deigratis Montessori School website',
+    url: 'https://deigratiams.edu.gh/',
+    category: 'Main',
+    displayOrder: 1,
+    isActive: true,
+    backgroundColor: '#1976D2',
+    textColor: '#FFFFFF',
+    requiresAuth: false,
+    openInNewTab: false,
+    iconUrl: 'https://res.cloudinary.com/ds5udo8jc/image/upload/v1/school_logo/dgm_logo_chkygj',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'dgms-library',
+    name: 'DGMS Library',
+    description: 'Access the school digital library resources',
+    url: 'https://library.deigratiams.edu.gh',
+    category: 'Academic',
+    displayOrder: 2,
+    isActive: true,
+    backgroundColor: '#4CAF50',
+    textColor: '#FFFFFF',
+    requiresAuth: false,
+    openInNewTab: false,
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/2232/2232688.png',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'student-dashboard',
+    name: 'Student Dashboard',
+    description: 'Student login portal for academic resources',
+    url: 'https://deigratiams.edu.gh/users/student-login/',
+    category: 'Student Portal',
+    displayOrder: 3,
+    isActive: true,
+    backgroundColor: '#FF9800',
+    textColor: '#FFFFFF',
+    requiresAuth: true,
+    openInNewTab: false,
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'parent-portal',
+    name: 'Parent Portal',
+    description: 'Parent login to monitor student progress',
+    url: 'https://deigratiams.edu.gh/users/parent-login/',
+    category: 'Parent Portal',
+    displayOrder: 4,
+    isActive: true,
+    backgroundColor: '#9C27B0',
+    textColor: '#FFFFFF',
+    requiresAuth: true,
+    openInNewTab: false,
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/1077/1077114.png',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'teacher-portal',
+    name: 'Teacher Portal',
+    description: 'Teacher dashboard for class management',
+    url: 'https://deigratiams.edu.gh/users/teacher-login/',
+    category: 'Staff Portal',
+    displayOrder: 5,
+    isActive: true,
+    backgroundColor: '#2196F3',
+    textColor: '#FFFFFF',
+    requiresAuth: true,
+    openInNewTab: false,
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/1995/1995574.png',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'staff-portal',
+    name: 'Non-Teaching Staff Portal',
+    description: 'Staff login for administrative tasks',
+    url: 'https://deigratiams.edu.gh/users/login/',
+    category: 'Staff Portal',
+    displayOrder: 6,
+    isActive: true,
+    backgroundColor: '#607D8B',
+    textColor: '#FFFFFF',
+    requiresAuth: true,
+    openInNewTab: false,
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/1077/1077063.png',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'uschool-online',
+    name: 'USchool Online',
+    description: 'USchool online learning management system',
+    url: 'https://app.uschoolonline.com/Public/Login?ReturnUrl=%2fDefault',
+    category: 'Learning Management',
+    displayOrder: 7,
+    isActive: true,
+    backgroundColor: '#E91E63',
+    textColor: '#FFFFFF',
+    requiresAuth: true,
+    openInNewTab: false,
+    iconUrl: 'https://www.uschoolonline.com/assets/images/logo.png',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
 
 // POST - Create new application
 app.post('/api/applications', (req, res) => {
