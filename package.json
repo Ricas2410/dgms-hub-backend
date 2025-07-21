@@ -4,9 +4,10 @@
   "description": "Backend API for DGMS Hub - School Web Applications Hub",
   "main": "server.js",
   "scripts": {
-    "start": "node database-server.js",
-    "dev": "nodemon database-server.js",
+    "start": "node hardcoded-server.js",
+    "dev": "nodemon hardcoded-server.js",
     "start:test": "node test-server.js",
+    "start:database": "node database-server.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "migrate": "sequelize-cli db:migrate",

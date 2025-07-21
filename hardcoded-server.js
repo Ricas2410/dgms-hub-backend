@@ -159,7 +159,7 @@ app.get('/', (req, res) => {
 // Health check
 app.get('/health', (req, res) => {
   const totalApps = DGMS_APPLICATIONS.length + additionalApplications.length;
-
+  
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
@@ -179,7 +179,7 @@ app.get('/api/applications', (req, res) => {
   try {
     // Combine hardcoded applications with any additional ones
     const allApplications = [...DGMS_APPLICATIONS, ...additionalApplications];
-
+    
     // Sort by display order
     allApplications.sort((a, b) => a.displayOrder - b.displayOrder);
 
@@ -355,7 +355,7 @@ app.get('/api/applications/meta/categories', (req, res) => {
     // Get unique categories from all applications
     const allApps = [...DGMS_APPLICATIONS, ...additionalApplications];
     const categories = [...new Set(allApps.filter(app => app.isActive).map(app => app.category))];
-
+    
     res.json({
       success: true,
       data: categories.length > 0 ? categories : ['Main', 'Academic', 'Student Portal', 'Parent Portal', 'Staff Portal', 'Learning Management']
